@@ -33,6 +33,11 @@ ARRAYSIZE = 200
 
   randArray		DWORD	ARRAYSIZE DUP (?)
 
+  title_1		BYTE	"Your unsorted random numbers:",13,10,0
+  title_2		BYTE	"The median value of the array: ",0
+  title_3		BYTE	"Your sorted random numbers:",13,10,0
+
+
   goodbye		BYTE	"Goodbye, and thanks for using this program!",13,10,0
 
 .code
@@ -51,6 +56,10 @@ main PROC
 
   PUSH OFFSET randArray
   CALL fillArray           ; Fill array with random mumbers
+
+  PUSH OFFSET title_2
+  PUSH OFFSET randArray
+  CALL displayMedian       ; Calculate and print median
 
   PUSH OFFSET goodbye
   CALL farewell			   ; Display end credits
@@ -153,9 +162,11 @@ _loop:
 	ADD EDI, 4
 	LOOP _loop
 
+	PUSH OFFSET title_1
 	PUSH OFFSET space
 	PUSH OFFSET randArray
-	CALL printArray        ; print array with random mumbers
+	CALL displayList        ; print array with random mumbers
+	CALL CrLf
 
 	POP EBP
     RET 4
@@ -163,7 +174,7 @@ _loop:
 
 
 ;-------------------------------------------------------;
-; Name: printArray                                      ;
+; Name: displayList                                      ;
 ;                                                       ;
 ; Print array                                           ;
 ;                                                       ;
@@ -171,18 +182,21 @@ _loop:
 ;                                                       ;
 ; Postconditions: none                                  ;
 ;                                                       ;
-; Receives: randArr, space                              ;
+; Receives: title, space, randArr                       ;
 ;                                                       ;
 ; Returns: none                                         ;
 ;-------------------------------------------------------;
-  printArray PROC
+  displayList PROC
 
     PUSH EBP
 	MOV EBP, ESP
 
+	MOV EDX, [EBP+16]    ; print title
+	CALL WriteString
+
+	MOV EDX, [EBP+12]    ; blank space
 	MOV ESI, [EBP+8]     ; address of array
 	MOV ECX, ARRAYSIZE   ; size of array
-	MOV EDX, [EBP+12]    ; blank space
 
 _loop:
 	MOV EAX, [ESI]
@@ -190,12 +204,11 @@ _loop:
 	CALL WriteString
 	ADD ESI, 4
 	CALL printNewline    ; print 20 numbers per line
-_next:
 	LOOP _loop
 
 	POP EBP
-    RET 4
-  printArray ENDP
+    RET 12
+  displayList ENDP
 
 
 ;-------------------------------------------------------;
@@ -230,6 +243,56 @@ _end:
 
 	RET
   printNewline ENDP
+
+
+;-------------------------------------------------------;
+; Name: displayMedian                                   ;
+;                                                       ;
+; Calculate and display median of array                 ;
+;                                                       ;
+; Preconditions: none                                   ;
+;                                                       ;
+; Postconditions: none                                  ;
+;                                                       ;
+; Receives: title, randArr                              ;
+;                                                       ;
+; Returns: none                                         ;
+;-------------------------------------------------------;
+  displayMedian PROC
+
+    PUSH EBP
+	MOV EBP, ESP
+
+	MOV ESI, [EBP+8]     ; address of array
+	MOV ECX, ARRAYSIZE   ; size of array
+	MOV EAX, 0           ; reset accumulator
+
+	;---------------
+	; sum all values
+	;---------------
+_loop:
+	ADD EAX, [ESI]
+	ADD ESI, 4
+	LOOP _loop
+
+	;-----------------
+	; calculate median
+	;-----------------
+	MOV EDX, 0
+	MOV EBX, ARRAYSIZE
+	DIV EBX
+
+	;---------------
+	; display median
+	;---------------
+	MOV EDX, [EBP+12]
+	CALL WriteString
+	CALL WriteDec
+	CALL CrLf
+
+	POP EBP
+    RET 8
+  displayMedian ENDP
 
 
 
