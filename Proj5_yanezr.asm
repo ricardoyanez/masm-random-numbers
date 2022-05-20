@@ -52,10 +52,6 @@ main PROC
   PUSH OFFSET randArray
   CALL fillArray           ; Fill array with random mumbers
 
-  PUSH OFFSET space
-  PUSH OFFSET randArray
-  CALL printArray           ; print array with random mumbers
-
   PUSH OFFSET goodbye
   CALL farewell			   ; Display end credits
 
@@ -131,7 +127,7 @@ main ENDP
 ;                                                       ;
 ; Fill array with random numbers in the range [LO,HI]   ;
 ;                                                       ;
-; Preconditions: none                                   ;
+; Preconditions: HI, LO, ARRAYSIZE constants defined    ;
 ;                                                       ;
 ; Postconditions: none                                  ;
 ;                                                       ;
@@ -157,6 +153,10 @@ _loop:
 	ADD EDI, 4
 	LOOP _loop
 
+	PUSH OFFSET space
+	PUSH OFFSET randArray
+	CALL printArray        ; print array with random mumbers
+
 	POP EBP
     RET 4
   fillArray ENDP
@@ -165,7 +165,7 @@ _loop:
 ;-------------------------------------------------------;
 ; Name: printArray                                      ;
 ;                                                       ;
-; Print array with random                               ;
+; Print array                                           ;
 ;                                                       ;
 ; Preconditions: none                                   ;
 ;                                                       ;
@@ -182,7 +182,6 @@ _loop:
 
 	MOV ESI, [EBP+8]     ; address of array
 	MOV ECX, ARRAYSIZE   ; size of array
-
 	MOV EDX, [EBP+12]    ; blank space
 
 _loop:
@@ -190,11 +189,48 @@ _loop:
 	CALL WriteDec
 	CALL WriteString
 	ADD ESI, 4
+	CALL printNewline    ; print 20 numbers per line
+_next:
 	LOOP _loop
 
 	POP EBP
     RET 4
   printArray ENDP
+
+
+;-------------------------------------------------------;
+; Name: printNewline                                    ;
+;                                                       ;
+; Print new line after 20 numbers displayed             ;
+;                                                       ;
+; Preconditions: called from inside a loop              ;
+;                                                       ;
+; Postconditions: none                                  ;
+;                                                       ;
+; Receives: ECX loop counter                            ;
+;                                                       ;
+; Returns: none                                         ;
+;-------------------------------------------------------;
+  printNewline PROC
+	PUSH EAX      ; preserve registers
+	PUSH EDX
+
+	MOV EDX, 0
+	MOV EAX, ECX
+	DEC EAX
+	MOV EBX, 20
+	DIV EBX
+	CMP EDX, 0
+	JG _end
+	CALL CrLf
+_end:
+
+	POP EDX       ; restore registers
+	POP EAX
+
+	RET
+  printNewline ENDP
+
 
 
 ;-------------------------------------------------------;
