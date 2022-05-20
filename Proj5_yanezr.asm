@@ -274,13 +274,28 @@ _loop:
 	ADD EAX, [ESI]
 	ADD ESI, 4
 	LOOP _loop
-
 	;-----------------
 	; calculate median
 	;-----------------
 	MOV EDX, 0
 	MOV EBX, ARRAYSIZE
 	DIV EBX
+	MOV ECX, EAX         ; save median
+
+	; -------------------------------------------------
+	; Round using the remainder. Multiply the remainder
+	; by two. If it is larger than the divisor, add one
+	; to the average.
+	;--------------------------------------------------
+	MOV EAX, EDX
+	MOV EDX, 0
+	MOV EBX, 2
+	MUL EBX
+	CMP EAX, ARRAYSIZE
+	JB _done
+	INC ECX              ; round up
+_done:
+	MOV EAX, ECX
 
 	;---------------
 	; display median
