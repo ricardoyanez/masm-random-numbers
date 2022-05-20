@@ -36,7 +36,8 @@ ARRAYSIZE = 200
   title_1		BYTE	"Your unsorted random numbers:",13,10,0
   title_2		BYTE	"The median value of the array: ",0
   title_3		BYTE	"Your sorted random numbers:",13,10,0
-
+  title_4		BYTE	"Your list of instances of each generated number, starting with the number of ",0
+  title_5		BYTE	"s:",13,10,0
 
   goodbye		BYTE	"Goodbye, and thanks for using this program!",13,10,0
 
@@ -55,11 +56,14 @@ main PROC
   CALL introduction		   ; Display greeting and instructions
 
   PUSH OFFSET randArray
-  CALL fillArray           ; Fill array with random mumbers
+  CALL fillArray           ; Fill array with random mumbers and print
 
   PUSH OFFSET title_2
   PUSH OFFSET randArray
-  CALL displayMedian       ; Calculate and print median
+  CALL displayMedian       ; Calculate median and print
+
+  PUSH OFFSET randArray
+  CALL sortList            ; Sort array print
 
   PUSH OFFSET goodbye
   CALL farewell			   ; Display end credits
@@ -162,6 +166,9 @@ _loop:
 	ADD EDI, 4
 	LOOP _loop
 
+	;------------
+	; print array
+	;------------
 	PUSH OFFSET title_1
 	PUSH OFFSET space
 	PUSH OFFSET randArray
@@ -282,11 +289,11 @@ _loop:
 	DIV EBX
 	MOV ECX, EAX         ; save median
 
-	; -------------------------------------------------
-	; Round using the remainder. Multiply the remainder
-	; by two. If it is larger than the divisor, add one
-	; to the average.
-	;--------------------------------------------------
+	; ------------------------------------------
+	; Round up using the remainder. Multiply the
+	; remainder by two. If it is larger than the 
+	; divisor, add one to the median.
+	;-------------------------------------------
 	MOV EAX, EDX
 	MOV EDX, 0
 	MOV EBX, 2
@@ -304,11 +311,87 @@ _done:
 	CALL WriteString
 	CALL WriteDec
 	CALL CrLf
+	CALL CrLf
 
 	POP EBP
-    RET 8
+    RET 4
   displayMedian ENDP
 
+
+;-------------------------------------------------------;
+; Name: sortList                                        ;
+;                                                       ;
+; Sort array in ascending order and print               ;
+;                                                       ;
+; Preconditions: none                                   ;
+;                                                       ;
+; Postconditions: none                                  ;
+;                                                       ;
+; Receives: title, randArr                              ;
+;                                                       ;
+; Returns: none                                         ;
+;-------------------------------------------------------;
+  sortList PROC
+
+    PUSH EBP
+	MOV EBP, ESP
+
+	;----------------------------
+	; use nested loops to compare 
+	; and swap elements
+	; extremey rudamentary sort
+	;----------------------------
+	MOV ECX, ARRAYSIZE-1	; outer loop counter
+
+_outer_loop:
+	MOV ESI, [EBP+8]		; address of array
+	MOV EBX, ECX			; inner loop counter
+
+_inner_loop:
+	MOV EAX, [ESI]
+	ADD ESI, 4
+	MOV EDX, [ESI]
+	CMP EAX, EDX
+	JBE _next
+	CALL exchangeElements
+  _next:
+	DEC EBX
+	JNZ _inner_loop
+
+	DEC ECX
+	JNZ _outer_loop
+
+
+	PUSH OFFSET title_3
+	PUSH OFFSET space
+	PUSH OFFSET randArray
+	CALL displayList        ; print array with random mumbers
+	CALL CrLf
+
+	POP EBP
+    RET 12
+  sortList ENDP
+
+
+;-------------------------------------------------------;
+; Name: exchangeElements                                ;
+;                                                       ;
+; Swap two adjacent elements of an array                ;
+;                                                       ;
+; Preconditions: ESI must hold the address of the       ;
+;                second element                         ;
+;                                                       ;
+; Postconditions: none                                  ;
+;                                                       ;
+; Receives: none                                        ;
+;                                                       ;
+; Returns: none                                         ;
+;-------------------------------------------------------;
+  exchangeElements PROC
+	MOV [ESI], EAX
+	MOV [ESI-4], EDX
+	RET
+  exchangeElements ENDP
 
 
 ;-------------------------------------------------------;
