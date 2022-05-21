@@ -29,7 +29,6 @@ ARRAYSIZE = 200
   prompt5		BYTE	"s.",13,10,10,0
 
   dash			BYTE	"-",0
-  space			BYTE	" ",0
 
   randArray		DWORD	ARRAYSIZE DUP (?)
   counts		DWORD	HI-LO+1 DUP (0)
@@ -53,7 +52,6 @@ main PROC
   PUSH OFFSET prompt3
   PUSH OFFSET prompt4
   PUSH OFFSET prompt5
-  PUSH OFFSET dash
   CALL introduction			; Display greeting and introduction
 
   PUSH OFFSET randArray
@@ -123,7 +121,7 @@ main ENDP
 ;                                                   ;
 ; Preconditions: none                               ;
 ;                                                   ;
-; Postconditions: none                              ;
+; Postconditions: all used registers restored       ;
 ;                                                   ;
 ; Receives: greeting and introduction strings       ;
 ;                                                   ;
@@ -131,25 +129,43 @@ main ENDP
 ;---------------------------------------------------;
   introduction PROC
 
-    PUSH EBP
+	PUSH EBP
 	MOV EBP, ESP
+
+	PUSH EAX				; preserve registers
+	PUSH EDX
 
 	;-----------------
 	; display greeting
 	;-----------------
-	MOV EDX, [EBP+32]
+	MOV EDX, [EBP+28]
 	CALL WriteString
 
 	;---------------------
 	; display instructions
 	;---------------------
-	MOV EDX, [EBP+28]
+	MOV EDX, [EBP+24]
 	CALL WriteString
 
 	MOV EAX, ARRAYSIZE
 	CALL WriteDec
 
-	MOV EDX, [EBP+24]
+	MOV EDX, [EBP+20]
+	CALL WriteString
+
+	MOV EAX, LO
+	CALL WriteDec
+
+	MOV AL, '-'
+	CALL WriteChar
+
+	MOV EAX, HI
+	CALL WriteDec
+
+	MOV EDX, [EBP+16]
+	CALL WriteString
+
+	MOV EDX, [EBP+12]
 	CALL WriteString
 
 	MOV EAX, LO
@@ -158,23 +174,11 @@ main ENDP
 	MOV EDX, [EBP+8]
 	CALL WriteString
 
-	MOV EAX, HI
-	CALL WriteDec
-
-	MOV EDX, [EBP+20]
-	CALL WriteString
-
-	MOV EDX, [EBP+16]
-	CALL WriteString
-
-	MOV EAX, LO
-	CALL WriteDec
-
-	MOV EDX, [EBP+12]
-	CALL WriteString
+	POP EDX					; restore registers
+	POP EAX
 
 	POP EBP
-	RET 28
+	RET 24
   introduction ENDP
 
 ;-------------------------------------------------------;
@@ -184,7 +188,7 @@ main ENDP
 ;                                                       ;
 ; Preconditions: HI, LO, ARRAYSIZE constants            ;
 ;                                                       ;
-; Postconditions: none                                  ;
+; Postconditions: all used registers restored           ;
 ;                                                       ;
 ; Receives: none                                        ;
 ;                                                       ;
@@ -192,8 +196,11 @@ main ENDP
 ;-------------------------------------------------------;
   fillArray PROC
 
-    PUSH EBP
+	PUSH EBP
 	MOV EBP, ESP
+
+	PUSH EAX				; preserve registers
+	PUSH ECX
 
 	MOV EDI, [EBP+8]		; address of array
 	MOV ECX, ARRAYSIZE		; size of array
@@ -212,8 +219,11 @@ _loop:
 	ADD EDI, SIZEOF DWORD
 	LOOP _loop
 
+	POP ECX					; restore registers
+	POP EAX
+
 	POP EBP
-    RET 4
+	RET 4
   fillArray ENDP
 
 
@@ -224,7 +234,7 @@ _loop:
 ;                                                       ;
 ; Preconditions: none                                   ;
 ;                                                       ;
-; Postconditions: none                                  ;
+; Postconditions: all used registers restored           ;
 ;                                                       ;
 ; Receives: size of array and array                     ;
 ;                                                       ;
@@ -232,8 +242,13 @@ _loop:
 ;-------------------------------------------------------;
   displayList PROC
 
-    PUSH EBP
+	PUSH EBP
 	MOV EBP, ESP
+
+	PUSH EAX				; preserve register
+	PUSH EBX
+	PUSH ECX
+	PUSH EDX
 
 	MOV ESI, [EBP+8]		; address of array
 	MOV ECX, [EBP+12]		; size of array
@@ -268,8 +283,13 @@ _loop:
 _skip:
 	CALL CrLf
 
+	POP EDX					; restore registers
+	POP ECX
+	POP EBX
+	POP EAX
+
 	POP EBP
-    RET 8
+	RET 8
   displayList ENDP
 
 
@@ -280,7 +300,7 @@ _skip:
 ;                                                       ;
 ; Preconditions: called from inside a loop              ;
 ;                                                       ;
-; Postconditions: none                                  ;
+; Postconditions: all used registers restored           ;
 ;                                                       ;
 ; Receives: count                                       ;
 ;                                                       ;
@@ -323,7 +343,7 @@ _end:
 ;                                                       ;
 ; Preconditions: none                                   ;
 ;                                                       ;
-; Postconditions: none                                  ;
+; Postconditions: all used registers preserved          ;
 ;                                                       ;
 ; Receives: array                                       ;
 ;                                                       ;
@@ -331,8 +351,13 @@ _end:
 ;-------------------------------------------------------;
   displayMedian PROC
 
-    PUSH EBP
+	PUSH EBP
 	MOV EBP, ESP
+
+	PUSH EAX				; preserve register
+	PUSH EBX
+	PUSH ECX
+	PUSH EDX
 
 	MOV ESI, [EBP+8]	; address of array
 	MOV ECX, ARRAYSIZE	; size of array
@@ -372,8 +397,13 @@ _skip:
 	CALL CrLf
 	CALL CrLf
 
+	POP EDX					; restore registers
+	POP ECX
+	POP EBX
+	POP EAX
+
 	POP EBP
-    RET 4
+	RET 4
   displayMedian ENDP
 
 
@@ -384,7 +414,7 @@ _skip:
 ;                                                       ;
 ; Preconditions: none                                   ;
 ;                                                       ;
-; Postconditions: none                                  ;
+; Postconditions: all used registers preserved          ;
 ;                                                       ;
 ; Receives: title, array                                ;
 ;                                                       ;
@@ -392,8 +422,13 @@ _skip:
 ;-------------------------------------------------------;
   sortList PROC
 
-    PUSH EBP
+	PUSH EBP
 	MOV EBP, ESP
+
+	PUSH EAX				; preserve register
+	PUSH EBX
+	PUSH ECX
+	PUSH EDX
 
 	;----------------------------------------------
 	; use nested loops to compare and swap elements
@@ -419,8 +454,13 @@ _skip:
 	DEC ECX
 	JNZ _outer_loop
 
+	POP EDX					; restore registers
+	POP ECX
+	POP EBX
+	POP EAX
+
 	POP EBP
-    RET 4
+	RET 4
   sortList ENDP
 
 
@@ -454,7 +494,7 @@ _skip:
 ;                                                       ;
 ; Preconditions: none                                   ;
 ;                                                       ;
-; Postconditions: none                                  ;
+; Postconditions: all used registers restored           ;
 ;                                                       ;
 ; Receives: array                                       ;
 ;                                                       ;
@@ -462,8 +502,13 @@ _skip:
 ;-------------------------------------------------------;
   countList PROC
 
-    PUSH EBP
+	PUSH EBP
 	MOV EBP, ESP
+
+	PUSH EAX				; preserve register
+	PUSH EBX
+	PUSH ECX
+	PUSH EDX
 
 	MOV ESI, [EBP+12]		; address of input array
 	MOV ECX, ARRAYSIZE		; size of input array
@@ -484,8 +529,13 @@ _count_loop:
 	ADD ESI, SIZEOF DWORD
 	LOOP _count_loop
 
+	POP EDX					; restore registers
+	POP ECX
+	POP EBX
+	POP EAX
+
 	POP EBP
-    RET 4
+	RET 4
   countList ENDP
 
 
@@ -496,7 +546,7 @@ _count_loop:
 ;                                                       ;
 ; Preconditions: none                                   ;
 ;                                                       ;
-; Postconditions: none                                  ;
+; Postconditions: all used registers restored           ;
 ;                                                       ;
 ; Receives: string                                      ;
 ;                                                       ;
@@ -504,14 +554,18 @@ _count_loop:
 ;-------------------------------------------------------;
   farewell PROC
 
-    PUSH EBP
+	PUSH EBP
 	MOV EBP, ESP
+
+	PUSH EDX				; preserve regsters
 
 	;--------------------
 	; display end credits
 	;--------------------
 	MOV EDX, [EBP+8]
 	CALL WriteString
+
+	POP EDX					; restore registers
 
 	POP EBP
 	RET 4
