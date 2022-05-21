@@ -6,7 +6,7 @@ TITLE Display Random Numbers     (Proj5_yanezr.asm)
 ; Course number/section: CS271 Section 404
 ; Project Number: 5 Due Date: 5/22/2022
 ; Description: Generate random numbers within a range, sort, calculate
-;	           median and count
+;	           median and count instances
 
 INCLUDE Irvine32.inc
 
@@ -32,6 +32,7 @@ ARRAYSIZE = 200
   space			BYTE	" ",0
 
   randArray		DWORD	ARRAYSIZE DUP (?)
+  counts		DWORD	HI-LO+1 DUP (0)
 
   title_1		BYTE	"Your unsorted random numbers:",13,10,0
   title_2		BYTE	"The median value of the array: ",0
@@ -44,7 +45,7 @@ ARRAYSIZE = 200
 .code
 main PROC
 
-  CALL Randomize           ; Initialize the seed
+  CALL Randomize			; Initialize the seed
 
   PUSH OFFSET greeting
   PUSH OFFSET prompt1
@@ -53,22 +54,65 @@ main PROC
   PUSH OFFSET prompt4
   PUSH OFFSET prompt5
   PUSH OFFSET dash
-  CALL introduction		   ; Display greeting and instructions
+  CALL introduction			; Display greeting and introduction
 
   PUSH OFFSET randArray
-  CALL fillArray           ; Fill array with random mumbers and print
+  CALL fillArray			; Fill array with random mumbers
 
-  PUSH OFFSET title_2
+  ;------------------------------------
+  ; print unsorted random numbers title
+  ;------------------------------------
+  MOV EDX, OFFSET title_1
+  CALL WriteString
+
+  PUSH ARRAYSIZE
   PUSH OFFSET randArray
-  CALL displayMedian       ; Calculate median and print
+  CALL displayList			; print unsorted array
+
+  ;-------------------
+  ; print median title
+  ;-------------------
+  MOV EDX, OFFSET title_2
+  CALL WriteString
 
   PUSH OFFSET randArray
-  CALL sortList            ; Sort array print
+  CALL displayMedian		; Calculate median and print
+
+  ;----------------------------------
+  ; print sorted random numbers title
+  ;----------------------------------
+  MOV EDX, OFFSET title_3
+  CALL WriteString
+
+  PUSH OFFSET randArray
+  CALL sortList				; Sort array
+
+  PUSH ARRAYSIZE
+  PUSH OFFSET randArray
+  CALL displayList			; print sorted array
+
+  ;-----------------------------
+  ; print instance counter title
+  ;-----------------------------
+  MOV EDX, OFFSET title_4
+  CALL WriteString
+  MOV EAX, LO
+  CALL WriteDec
+  MOV EDX, OFFSET title_5
+  CALL WriteString
+
+  PUSH OFFSET randArray
+  PUSH OFFSET counts
+  CALL countList			; Count element instances of array
+
+  PUSH HI-LO+1
+  PUSH OFFSET counts
+  CALL displayList			; print instance counter
 
   PUSH OFFSET goodbye
-  CALL farewell			   ; Display end credits
+  CALL farewell				; Display end credits
 
-  Invoke ExitProcess,0	   ; exit to operating system
+  Invoke ExitProcess,0		; exit to operating system
 main ENDP
 
 
@@ -77,13 +121,11 @@ main ENDP
 ;                                                   ;
 ; Display program title and instructions.           ;
 ;                                                   ;
-; Preconditions: strings greeting, instruct,        ;
-;                prompt_ec1 and prompt_ec2 declared ;
+; Preconditions: none                               ;
 ;                                                   ;
 ; Postconditions: none                              ;
 ;                                                   ;
-; Receives: global variables greeting, instruct,    ;
-;                  prompt_ec1 and prompt_ec2        ;
+; Receives: greeting and introduction strings       ;
 ;                                                   ;
 ; Returns: none                                     ;
 ;---------------------------------------------------;
@@ -140,22 +182,26 @@ main ENDP
 ;                                                       ;
 ; Fill array with random numbers in the range [LO,HI]   ;
 ;                                                       ;
-; Preconditions: HI, LO, ARRAYSIZE constants defined    ;
+; Preconditions: HI, LO, ARRAYSIZE constants            ;
 ;                                                       ;
 ; Postconditions: none                                  ;
 ;                                                       ;
 ; Receives: none                                        ;
 ;                                                       ;
-; Returns: randArr                                      ;
+; Returns: array                                        ;
 ;-------------------------------------------------------;
   fillArray PROC
 
     PUSH EBP
 	MOV EBP, ESP
 
-	MOV EDI, [EBP+8]     ; address of array
-	MOV ECX, ARRAYSIZE   ; size of array
+	MOV EDI, [EBP+8]		; address of array
+	MOV ECX, ARRAYSIZE		; size of array
 
+	;------------------------------------
+	; loop and populate array with random
+	; numbers in the range [LO,HI]
+	;------------------------------------
 _loop:
 	MOV EAX, HI
 	INC EAX
@@ -163,17 +209,8 @@ _loop:
 	CMP EAX, LO
 	JL _loop
 	MOV [EDI], EAX
-	ADD EDI, 4
+	ADD EDI, SIZEOF DWORD
 	LOOP _loop
-
-	;------------
-	; print array
-	;------------
-	PUSH OFFSET title_1
-	PUSH OFFSET space
-	PUSH OFFSET randArray
-	CALL displayList        ; print array with random mumbers
-	CALL CrLf
 
 	POP EBP
     RET 4
@@ -181,7 +218,7 @@ _loop:
 
 
 ;-------------------------------------------------------;
-; Name: displayList                                      ;
+; Name: displayList                                     ;
 ;                                                       ;
 ; Print array                                           ;
 ;                                                       ;
@@ -189,7 +226,7 @@ _loop:
 ;                                                       ;
 ; Postconditions: none                                  ;
 ;                                                       ;
-; Receives: title, space, randArr                       ;
+; Receives: size of array and array                     ;
 ;                                                       ;
 ; Returns: none                                         ;
 ;-------------------------------------------------------;
@@ -198,23 +235,41 @@ _loop:
     PUSH EBP
 	MOV EBP, ESP
 
-	MOV EDX, [EBP+16]    ; print title
-	CALL WriteString
+	MOV ESI, [EBP+8]		; address of array
+	MOV ECX, [EBP+12]		; size of array
+	MOV EBX, 0				; counter
 
-	MOV EDX, [EBP+12]    ; blank space
-	MOV ESI, [EBP+8]     ; address of array
-	MOV ECX, ARRAYSIZE   ; size of array
-
+	;--------------------------------
+	; loop and print an array element
+	; followed by a space
+	;--------------------------------
 _loop:
 	MOV EAX, [ESI]
 	CALL WriteDec
-	CALL WriteString
-	ADD ESI, 4
-	CALL printNewline    ; print 20 numbers per line
+	MOV AL, ' '
+	CALL WriteChar
+	ADD ESI, SIZEOF DWORD
+	INC EBX
+	PUSH EBX
+	CALL printNewline		; print 20 numbers per line
 	LOOP _loop
 
+	;--------------------------------
+	; print extra new line if counter
+	; is not a multiple of 20
+	;--------------------------------
+	MOV EDX, 0
+	MOV EAX, EBX
+	MOV EBX, 20
+	DIV EBX
+	CMP EDX, 0
+	JZ _skip
+	CALL CrLf
+_skip:
+	CALL CrLf
+
 	POP EBP
-    RET 12
+    RET 8
   displayList ENDP
 
 
@@ -227,28 +282,37 @@ _loop:
 ;                                                       ;
 ; Postconditions: none                                  ;
 ;                                                       ;
-; Receives: ECX loop counter                            ;
+; Receives: count                                       ;
 ;                                                       ;
 ; Returns: none                                         ;
 ;-------------------------------------------------------;
   printNewline PROC
-	PUSH EAX      ; preserve registers
+	PUSH EBP
+	MOV EBP, ESP
+
+	PUSH EAX			; preserve registers
+	PUSH EBX
 	PUSH EDX
 
+	;--------------------
+	; print a new line if
+	; count % 20 == 0
+	;--------------------
 	MOV EDX, 0
-	MOV EAX, ECX
-	DEC EAX
+	MOV EAX, [EBP+8]	; count
 	MOV EBX, 20
 	DIV EBX
 	CMP EDX, 0
-	JG _end
+	JNZ _end
 	CALL CrLf
 _end:
 
-	POP EDX       ; restore registers
+	POP EDX				; restore registers
+	POP EBX
 	POP EAX
 
-	RET
+	POP EBP
+	RET 4
   printNewline ENDP
 
 
@@ -261,7 +325,7 @@ _end:
 ;                                                       ;
 ; Postconditions: none                                  ;
 ;                                                       ;
-; Receives: title, randArr                              ;
+; Receives: array                                       ;
 ;                                                       ;
 ; Returns: none                                         ;
 ;-------------------------------------------------------;
@@ -270,9 +334,9 @@ _end:
     PUSH EBP
 	MOV EBP, ESP
 
-	MOV ESI, [EBP+8]     ; address of array
-	MOV ECX, ARRAYSIZE   ; size of array
-	MOV EAX, 0           ; reset accumulator
+	MOV ESI, [EBP+8]	; address of array
+	MOV ECX, ARRAYSIZE	; size of array
+	MOV EAX, 0			; reset accumulator
 
 	;---------------
 	; sum all values
@@ -287,11 +351,11 @@ _loop:
 	MOV EDX, 0
 	MOV EBX, ARRAYSIZE
 	DIV EBX
-	MOV ECX, EAX         ; save median
+	MOV ECX, EAX		; save median
 
 	; ------------------------------------------
 	; Round up using the remainder. Multiply the
-	; remainder by two. If it is larger than the 
+	; remainder by two. If it is larger than the
 	; divisor, add one to the median.
 	;-------------------------------------------
 	MOV EAX, EDX
@@ -299,16 +363,11 @@ _loop:
 	MOV EBX, 2
 	MUL EBX
 	CMP EAX, ARRAYSIZE
-	JB _done
-	INC ECX              ; round up
-_done:
+	JB _skip
+	INC ECX				; round up
+_skip:
 	MOV EAX, ECX
 
-	;---------------
-	; display median
-	;---------------
-	MOV EDX, [EBP+12]
-	CALL WriteString
 	CALL WriteDec
 	CALL CrLf
 	CALL CrLf
@@ -327,7 +386,7 @@ _done:
 ;                                                       ;
 ; Postconditions: none                                  ;
 ;                                                       ;
-; Receives: title, randArr                              ;
+; Receives: title, array                                ;
 ;                                                       ;
 ; Returns: none                                         ;
 ;-------------------------------------------------------;
@@ -336,11 +395,10 @@ _done:
     PUSH EBP
 	MOV EBP, ESP
 
-	;----------------------------
-	; use nested loops to compare 
-	; and swap elements
+	;----------------------------------------------
+	; use nested loops to compare and swap elements
 	; extremey rudamentary sort
-	;----------------------------
+	;----------------------------------------------
 	MOV ECX, ARRAYSIZE-1	; outer loop counter
 
 _outer_loop:
@@ -349,27 +407,20 @@ _outer_loop:
 
 _inner_loop:
 	MOV EAX, [ESI]
-	ADD ESI, 4
+	ADD ESI, SIZEOF DWORD
 	MOV EDX, [ESI]
 	CMP EAX, EDX
-	JBE _next
+	JBE _skip
 	CALL exchangeElements
-  _next:
+_skip:
 	DEC EBX
 	JNZ _inner_loop
 
 	DEC ECX
 	JNZ _outer_loop
 
-
-	PUSH OFFSET title_3
-	PUSH OFFSET space
-	PUSH OFFSET randArray
-	CALL displayList        ; print array with random mumbers
-	CALL CrLf
-
 	POP EBP
-    RET 12
+    RET 4
   sortList ENDP
 
 
@@ -379,19 +430,63 @@ _inner_loop:
 ; Swap two adjacent elements of an array                ;
 ;                                                       ;
 ; Preconditions: ESI must hold the address of the       ;
-;                second element                         ;
+;                second element. EAX and EDX must hold  ;
+;                the values to exchange                 ;
 ;                                                       ;
-; Postconditions: none                                  ;
+; Postconditions: values exchanged                      ;
 ;                                                       ;
 ; Receives: none                                        ;
 ;                                                       ;
 ; Returns: none                                         ;
 ;-------------------------------------------------------;
   exchangeElements PROC
+
 	MOV [ESI], EAX
 	MOV [ESI-4], EDX
+
 	RET
   exchangeElements ENDP
+
+;-------------------------------------------------------;
+; Name: countList                                       ;
+;                                                       ;
+; Count the number of incidences of values in array     ;
+;                                                       ;
+; Preconditions: none                                   ;
+;                                                       ;
+; Postconditions: none                                  ;
+;                                                       ;
+; Receives: array                                       ;
+;                                                       ;
+; Returns: counter                                      ;
+;-------------------------------------------------------;
+  countList PROC
+
+    PUSH EBP
+	MOV EBP, ESP
+
+	MOV ESI, [EBP+12]		; address of input array
+	MOV ECX, ARRAYSIZE		; size of input array
+
+	;--------------------------
+	; loop over array and count
+	; each instance of a value
+	;--------------------------
+_count_loop:
+	MOV EDI, [EBP+8]		; address of output array
+	MOV EAX, [ESI]
+	SUB EAX, LO				; index of counter
+	MOV EBX, TYPE DWORD		; multiply by TYPE
+	MUL EBX
+	MOV EBX, [EDI+EAX]		; load count
+	INC EBX					; increment by one
+	MOV [EDI+EAX], EBX		; store count
+	ADD ESI, SIZEOF DWORD
+	LOOP _count_loop
+
+	POP EBP
+    RET 4
+  countList ENDP
 
 
 ;-------------------------------------------------------;
@@ -403,7 +498,7 @@ _inner_loop:
 ;                                                       ;
 ; Postconditions: none                                  ;
 ;                                                       ;
-; Receives: prompt3 string global variable              ;
+; Receives: string                                      ;
 ;                                                       ;
 ; Returns: none                                         ;
 ;-------------------------------------------------------;
